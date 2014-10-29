@@ -1,0 +1,6 @@
+CS3339 -- MIPS Interpreter
+running hash.mips
+
+ 1  0  0  1  0  0  1  0  0  1  0  0  1  0  0  1  0  0  1  0  0  1  0  0  1  0  0  1  0  0  1  0  0  1  0  0  1  0  0  1  0  0  1  0  0  1  0  1 
+
+program finished at pc = 0x40027c  (39119 instructions executed)

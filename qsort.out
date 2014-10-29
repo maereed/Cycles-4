@@ -1,0 +1,7 @@
+CS3339 -- MIPS Interpreter
+running qsort.mips
+
+ 99  0 
+ 0  99 
+
+program finished at pc = 0x400238  (45947 instructions executed)

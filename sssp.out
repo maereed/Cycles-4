@@ -1,0 +1,6 @@
+CS3339 -- MIPS Interpreter
+running sssp.mips
+
+ 7  1 
+
+program finished at pc = 0x400440  (449513 instructions executed)
