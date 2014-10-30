@@ -99,21 +99,19 @@ static void Pipeline(int avail, int reg){
 static void Dependencies(int currentData, int stage){
   int i;
 
-  //Need to traverse through the register array to find the element the data might
-  //be saved in, once found, break
-  for(i=0; i < 8; i++){
-    if(regDestination[i] == currentData)
-      break;
-  }
 
   //Now check if bubbles are needed
-
   if (resultsAvailable[i] > stage ){ //if the stage avial is greater than stage needed, then add bubbles
 
      ///determine the number of stalls needed to grab the data
       int stalls = resultsAvailable[i] - stage;
-      bubbleCount = stalls;
-
+      bubbleCount += stalls;
+    // if(stalls != 0){
+    //   for(i = stalls; i > 0; i--){
+    //     regDestination[i]= regDestination[i-1];
+    //     resultsAvailable[i]=resultsAvailable[i-1];
+    //   }
+    // }
       //While stalls are needed subtract 1 from each pipeline stage and move
       while (stalls != 0){
         Pipeline(NOP, NOP);
