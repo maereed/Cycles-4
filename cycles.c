@@ -7,7 +7,7 @@ static int little_endian, icount, *instruction;
 static int mem[MEMSIZE / 4];
 
 int regDestination[8] = {0};
-int stageResults[8] = {0};
+int resultsAvailable[8] = {0};
 static int cycles = 0;
 static int clock = 6;
 static int flushCount = 0;
@@ -65,7 +65,7 @@ static void Dependencies(int currentData, int stage){
   int i;
 
   //Need to traverse through the for loop to find the element the data might
-  //be saved in
+  //be saved in, once found, break
   for(i=0; i < 8; i++){
     if(regDestination[i] == currentData)
       break;
@@ -73,9 +73,11 @@ static void Dependencies(int currentData, int stage){
 
   //Now check if bubbles are needed
 
-  // if (stageResults[i] - stage > 0 ){
+  if (resultsAvailable[i] > stage ){ //if the stage avial is greater than stage needed, then add bubbles
+      bubbleCount += resultsAvailable[i] - stage;
+  }
 
-  // }
+  updatePipline(0, 0, (resultsAvailable[i]-stage));
 
 }
 
@@ -87,18 +89,25 @@ Function used to update the pipe-
 line with new information
 *******************************/
 
-// static void updatePipline(int avail, int reg){
-  // int i;
+static void UpdatePipline(int avail, int reg, int nop){
+  int i;
 
-  // for(i = 7; i > 0; i++)
-  //   regDestination[i]= regDestination[i-1];
+  if(nop == 0){
+    for(i = 7; i > 0; i++)
+    regDestination[i]= regDestination[i-1];
 
-  // for(i = 0; i < 8; i++){
-  //   if(stageResults[i]){
+      for(i = 0; i < 8; i++){
+        if(resultsAvailable[i]){
 
-  //   }
-  // }
+        }
+      }
+  }else{
 
+
+  }
+
+
+}
 
 
 static void Interpret(int start)
@@ -233,7 +242,7 @@ int main(int argc, char *argv[])
   FILE *f;
 
   memcpy(&regDestination, &(int [8]){ 0 }, sizeof regDestination);
-  memcpy(&stageResults, &(int [8]){ 0 }, sizeof stageResults);
+  memcpy(&resultsAvailable, &(int [8]){ 0 }, sizeof resultsAvailable);
 
   printf("CS3339 -- MIPS Interpreter\n");
   if (argc != 2) {fprintf(stderr, "usage: %s executable\n", argv[0]); exit(-1);}
