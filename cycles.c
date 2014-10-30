@@ -12,6 +12,7 @@ static int cycles = 0;
 static int clock = 6;
 static int flushCount = 0;
 static int bubbleCount = 0;
+int nop = -1;
 
 
 static int Convert(unsigned int x)
@@ -58,36 +59,12 @@ static void StoreWord(int data, int addr)
 }
 
 /*******************************
-    Checking for Dependencies
-*******************************/
-
-static void Dependencies(int currentData, int stage){
-  int i;
-
-  //Need to traverse through the for loop to find the element the data might
-  //be saved in, once found, break
-  for(i=0; i < 8; i++){
-    if(regDestination[i] == currentData)
-      break;
-  }
-
-  //Now check if bubbles are needed
-
-  if (resultsAvailable[i] > stage ){ //if the stage avial is greater than stage needed, then add bubbles
-      bubbleCount += resultsAvailable[i] - stage;
-      NOP(resultsAvailable[i] - stage);
-  }
-
-}
-
-/*******************************
     Updating Pipeline
 
 **********************************
 Function used to update the pipe-
 line with new information
 *******************************/
-
 static void Pipeline(int avail, int reg){
   int i;
 
@@ -96,9 +73,9 @@ static void Pipeline(int avail, int reg){
       for(i = 0; i < 8; i++){
         if(resultsAvailable[i] != 1){
           resultsAvailable[i] = resultsAvailable[i] - 1; //subtract one each time, since one stage closer to completing results
-        }else
+        }else{
           resultsAvailable[i]=0;
-
+        }
       }
 
     //*****Set up for arrays ************
@@ -114,10 +91,36 @@ static void Pipeline(int avail, int reg){
 
 }
 
-static void nop(int stalls){
-  while (stalls != 0){
-    Pipeline(-1, -1);
+
+/*******************************
+    Checking for Dependencies
+*******************************/
+
+static void Dependencies(int currentData, int stage){
+  int i;
+
+  //Need to traverse through the register array to find the element the data might
+  //be saved in, once found, break
+  for(i=0; i < 8; i++){
+    if(regDestination[i] == currentData)
+      break;
   }
+
+  //Now check if bubbles are needed
+
+  if (resultsAvailable[i] > stage ){ //if the stage avial is greater than stage needed, then add bubbles
+
+     ///determine the number of stalls needed to grab the data
+      int stalls = resultsAvailable[i] - stage;
+      bubbleCount = stalls;
+
+      //While stalls are needed subtract 1 from each pipeline stage and move
+      while (stalls != 0){
+        Pipeline(nop, nop);
+        stalls-- ;
+      }
+  }
+
 }
 
 static void Interpret(int start)
@@ -155,23 +158,28 @@ static void Interpret(int start)
     switch (opcode) {
       case 0x00:
         switch (funct) {
-          case 0x00:  reg[rd] = reg[rs] << shamt;
-
-          break;/* sll */
-          case 0x03:  reg[rd] = reg[rs] >> (signed)shamt;
-          break;/* sra */
-          case 0x08:  pc = reg[rs];
-                                                        flushCount += 2;
-          break;/* jr */
-          case 0x10:  reg[rd] = hi;
-          break; /* mfhi */
-          case 0x12:  reg[rd] = lo;
-          break;/* mflo */
-          case 0x18:  wide = reg[rs];
+          case 0x00:  reg[rd] = reg[rs] << shamt;/* sll */
+                                                                          Dependencies(rs, 4); Pipeline(rd, 4);
+          break;
+          case 0x03:  reg[rd] = reg[rs] >> (signed)shamt;/* sra */
+                                                                          Dependencies(rs, 4); Pipeline(rd, 4);
+          break;
+          case 0x08:  pc = reg[rs];/* jr */
+                                                        flushCount += 2;  Dependencies(rs, 4); Pipeline(nop, nop);
+          break;
+          case 0x10:  reg[rd] = hi;/* mfhi */
+                                                                          Dependencies(40, 4); Pipeline(40, 4);
+          break;
+          case 0x12:  reg[rd] = lo;/* mflo */
+                                                                          Dependencies(40, 4); Pipeline(40, 4);
+          break;
+          case 0x18:  wide = reg[rs];/* mult */
                       wide *= reg[rt];
                       lo = wide & 0xffffffff;
                       hi = wide >> 32;
-          break;/* mult */
+                                                                          Dependencies(rs, 4);
+                                                                          Dependencies(rt, 4); Pipeline(40, 7);
+          break;
           case 0x1a:  if (reg[rt] == 0) {
                         fprintf(stderr, "division by zero: pc = 0x%x\n", pc-4);
                         cont = 0;
