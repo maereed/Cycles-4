@@ -75,9 +75,8 @@ static void Dependencies(int currentData, int stage){
 
   if (resultsAvailable[i] > stage ){ //if the stage avial is greater than stage needed, then add bubbles
       bubbleCount += resultsAvailable[i] - stage;
+      nop(resultsAvailable[i] - stage);
   }
-
-  updatePipline(0, 0, (resultsAvailable[i]-stage));
 
 }
 
@@ -92,21 +91,16 @@ line with new information
 static void UpdatePipline(int avail, int reg, int nop){
   int i;
 
-  if(nop == 0){
+    //move everything right one element
     for(i = 7; i > 0; i++)
-    regDestination[i]= regDestination[i-1];
+      regDestination[i]= regDestination[i-1];
 
+      //if results are available
       for(i = 0; i < 8; i++){
         if(resultsAvailable[i]){
 
         }
       }
-  }else{
-
-
-  }
-
-
 }
 
 
