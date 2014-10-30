@@ -91,14 +91,18 @@ line with new information
 static void UpdatePipline(int avail, int reg, int nop){
   int i;
 
+    //*****Set up for reg Destination array ************
     //move everything right one element
     for(i = 7; i > 0; i++)
       regDestination[i]= regDestination[i-1];
 
+    //*****Set up for stage available array ************
       //if results are available
       for(i = 0; i < 8; i++){
-        if(resultsAvailable[i]){
-
+        if(resultsAvailable[i] != 1){
+          resultsAvailable[i] = resultsAvailable[i] - 1; //subtract one each time, since one stage closer to completing results
+        }else{
+          resultsAvailable[i]=0;
         }
       }
 }
