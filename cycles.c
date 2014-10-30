@@ -75,7 +75,7 @@ static void Dependencies(int currentData, int stage){
 
   if (resultsAvailable[i] > stage ){ //if the stage avial is greater than stage needed, then add bubbles
       bubbleCount += resultsAvailable[i] - stage;
-      nop(resultsAvailable[i] - stage);
+      Nop(resultsAvailable[i] - stage);
   }
 
 }
@@ -88,9 +88,8 @@ Function used to update the pipe-
 line with new information
 *******************************/
 
-static void UpdatePipline(int avail, int reg, int nop){
+static void UpdatePipline(int avail, int reg){
   int i;
-
 
 //*****Set up for stage available array ************
       //update data to reflect that one cycle has passed
@@ -115,6 +114,11 @@ static void UpdatePipline(int avail, int reg, int nop){
 
 }
 
+static void Nop(int stalls){
+  while (stalls != 0){
+    UpdatePipline(-1, -1);
+  }
+}
 
 static void Interpret(int start)
 {
