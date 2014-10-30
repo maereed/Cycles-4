@@ -12,7 +12,7 @@ static int cycles = 0;
 static int clock = 6;
 static int flushCount = 0;
 static int bubbleCount = 0;
-int nop = -1;
+const int NOP = -1;
 
 
 static int Convert(unsigned int x)
@@ -116,7 +116,7 @@ static void Dependencies(int currentData, int stage){
 
       //While stalls are needed subtract 1 from each pipeline stage and move
       while (stalls != 0){
-        Pipeline(nop, nop);
+        Pipeline(NOP, NOP);
         stalls-- ;
       }
   }
@@ -159,48 +159,50 @@ static void Interpret(int start)
       case 0x00:
         switch (funct) {
           case 0x00:  reg[rd] = reg[rs] << shamt;/* sll */
-                                                                          Dependencies(rs, 4); Pipeline(rd, 4);
+                                                                          Dependencies(rs, 3); Pipeline(rd, 5);
           break;
           case 0x03:  reg[rd] = reg[rs] >> (signed)shamt;/* sra */
-                                                                          Dependencies(rs, 4); Pipeline(rd, 4);
+                                                                          Dependencies(rs, 3); Pipeline(rd, 3);
           break;
           case 0x08:  pc = reg[rs];/* jr */
-                                                        flushCount += 2;  Dependencies(rs, 4); Pipeline(nop, nop);
+                                                        flushCount += 2;  Dependencies(rs, 2); Pipeline(NOP, NOP);
           break;
           case 0x10:  reg[rd] = hi;/* mfhi */
-                                                                          Dependencies(40, 4); Pipeline(40, 4);
+                                                                          Dependencies(40, 3); Pipeline(40, 3);
           break;
           case 0x12:  reg[rd] = lo;/* mflo */
-                                                                          Dependencies(40, 4); Pipeline(40, 4);
+                                                                          Dependencies(40, 3); Pipeline(40, 3);
           break;
           case 0x18:  wide = reg[rs];/* mult */
                       wide *= reg[rt];
                       lo = wide & 0xffffffff;
                       hi = wide >> 32;
-                                                                          Dependencies(rs, 4);
-                                                                          Dependencies(rt, 4); Pipeline(40, 7);
+                                                                          Dependencies(rs, 3);
+                                                                          Dependencies(rt, 3); Pipeline(40, 6);
           break;
           case 0x1a:  if (reg[rt] == 0) {/* div */
-                        fprintf(stderr, "division by zero: pc = 0x%x\n", pc-4);
+                        fprintf(stderr, "division by zero: pc = 0x%x\n", pc-3);
                         cont = 0;
-                                                                          Dependencies(rt, 4); Pipeline(40, 7);
+                                                                          Dependencies(rt, 3); Pipeline(40, 6);
                       }else {
                         lo = reg[rs] / reg[rt];
                         hi = reg[rs] % reg[rt];
-                                                                          Dependencies(rs, 4);
-                                                                          Dependencies(rt, 4); Pipeline(40, 7);
+                                                                          Dependencies(rs, 3);
+                                                                          Dependencies(rt, 3); Pipeline(40, 6);
                       }
           break;
           case 0x21:  reg[rd] = reg[rs] + reg[rt];/* addu */
-                                                                          Dependencies(rs, 4);
-                                                                          Dependencies(rt, 4); Pipeline(rd, 4);
+                                                                          Dependencies(rs, 3);
+                                                                          Dependencies(rt, 3); Pipeline(rd, 3);
           break;
           case 0x23:  reg[rd] = reg[rs] - reg[rt];/* subu */
-                                                                          Dependencies(rs, 4);
-                                                                          Dependencies(rt, 4); Pipeline(rd, 4);
+                                                                          Dependencies(rs, 3);
+                                                                          Dependencies(rt, 3); Pipeline(rd, 3);
           break;
           case 0x2a:  if(reg[rs] < reg[rt]){/* slt */
                         reg[rd] = 1;
+                                                                          Dependencies(rs, 3);
+                                                                          Dependencies(rt, 3); Pipeline(rd, 3);
                       }else{
                         reg[rd]=0;
                       }
@@ -209,34 +211,43 @@ static void Interpret(int start)
         }
         break;
       case 0x02:  pc = (pc & 0xf0000000) + addr * 4;/* j */
-                                                          flushCount +=2;
+                                                          flushCount +=2;                      Pipeline(NOP, NOP);
       break;
       case 0x03: reg[31] = pc; pc = (pc & 0xf0000000) + addr * 4;/* jal */
-                                                          flushCount +=2;
+                                                          flushCount +=2;                      Pipeline(NOP, NOP);
       break;
       case 0x04:  if(reg[rs] == reg[rt]){/* beq */
                     pc = pc + simm * 4;
                                   /*if taken*/            flushCount +=2;
                   }
+                                                                          Dependencies(rs, 3);
+                                                                          Dependencies(rt, 3); Pipeline(NOP, NOP);
       break;
       case 0x05:  if(reg[rs] != reg[rt]){/* bne */
                     pc = pc + simm * 4;
                                   /*if taken*/            flushCount +=2;
                   }
+                                                                          Dependencies(rs, 3);
+                                                                          Dependencies(rt, 3); Pipeline(NOP, NOP);
       break;
       case 0x09:  reg[rt] = reg[rs] + simm;/* addiu */
+                                                                          Dependencies(rs, 3); Pipeline(rt, 3);
       break;
       case 0x0c:  reg[rt] = reg[rs] &  uimm;/* andi */
+                                                                          Dependencies(rs, 3); Pipeline(rt, 3);
       break;
       case 0x0f:  reg[rt] = simm << 16;/* lui */
+                                                                                               Pipeline(rt, 3);
       break;
       case 0x1a: /* trap */
         switch (addr & 0xf) {
           case 0x00: printf("\n");
           break;
           case 0x01: printf(" %d ", reg[rs]);
+                                                                          Dependencies(rs, 3); Pipeline(NOP, NOP);
           break;
           case 0x05: printf("\n? "); fflush(stdout); scanf("%d", &reg[rt]);
+                                                                                               Pipeline(NOP, NOP);
           break;
           case 0x0a: cont = 0;
           break;
@@ -244,8 +255,11 @@ static void Interpret(int start)
         }
         break;
       case 0x23:  reg[rt] = LoadWord(reg[rs] + simm);/* lw */
+                                                                          Dependencies(rt, 3); Pipeline(rt, 7);
       break;   // call LoadWord function
       case 0x2b:  StoreWord(reg[rt], reg[rs] + simm);/* sw */
+                                                                          Dependencies(rs, 6);
+                                                                          Dependencies(rt, 6); Pipeline(NOP, NOP);
       break;   // call StoreWord function
       default: fprintf(stderr, "unimplemented instruction: pc = 0x%x\n", pc-4); cont = 0;
     }
