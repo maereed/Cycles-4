@@ -180,49 +180,56 @@ static void Interpret(int start)
                                                                           Dependencies(rs, 4);
                                                                           Dependencies(rt, 4); Pipeline(40, 7);
           break;
-          case 0x1a:  if (reg[rt] == 0) {
+          case 0x1a:  if (reg[rt] == 0) {/* div */
                         fprintf(stderr, "division by zero: pc = 0x%x\n", pc-4);
                         cont = 0;
+                                                                          Dependencies(rt, 4); Pipeline(40, 7);
                       }else {
                         lo = reg[rs] / reg[rt];
                         hi = reg[rs] % reg[rt];
+                                                                          Dependencies(rs, 4);
+                                                                          Dependencies(rt, 4); Pipeline(40, 7);
                       }
-          break;/* div */
-          case 0x21:  reg[rd] = reg[rs] + reg[rt];
-          break;/* addu */
-          case 0x23:  reg[rd] = reg[rs] - reg[rt];
-          break;/* subu */
-          case 0x2a:  if(reg[rs] < reg[rt]){
+          break;
+          case 0x21:  reg[rd] = reg[rs] + reg[rt];/* addu */
+                                                                          Dependencies(rs, 4);
+                                                                          Dependencies(rt, 4); Pipeline(rd, 4);
+          break;
+          case 0x23:  reg[rd] = reg[rs] - reg[rt];/* subu */
+                                                                          Dependencies(rs, 4);
+                                                                          Dependencies(rt, 4); Pipeline(rd, 4);
+          break;
+          case 0x2a:  if(reg[rs] < reg[rt]){/* slt */
                         reg[rd] = 1;
                       }else{
                         reg[rd]=0;
                       }
-          break;/* slt */
+          break;
           default: fprintf(stderr, "unimplemented instruction: pc = 0x%x\n", pc-4); cont = 0;
         }
         break;
-      case 0x02:  pc = (pc & 0xf0000000) + addr * 4;
+      case 0x02:  pc = (pc & 0xf0000000) + addr * 4;/* j */
                                                           flushCount +=2;
-      break;/* j */
-      case 0x03: reg[31] = pc; pc = (pc & 0xf0000000) + addr * 4;
+      break;
+      case 0x03: reg[31] = pc; pc = (pc & 0xf0000000) + addr * 4;/* jal */
                                                           flushCount +=2;
-      break;/* jal */
-      case 0x04:  if(reg[rs] == reg[rt]){
+      break;
+      case 0x04:  if(reg[rs] == reg[rt]){/* beq */
                     pc = pc + simm * 4;
                                   /*if taken*/            flushCount +=2;
                   }
-      break;/* beq */
-      case 0x05:  if(reg[rs] != reg[rt]){
+      break;
+      case 0x05:  if(reg[rs] != reg[rt]){/* bne */
                     pc = pc + simm * 4;
                                   /*if taken*/            flushCount +=2;
                   }
-      break;/* bne */
-      case 0x09:  reg[rt] = reg[rs] + simm;
-      break;/* addiu */
-      case 0x0c:  reg[rt] = reg[rs] &  uimm;
-      break;/* andi */
-      case 0x0f:  reg[rt] = simm << 16;
-      break;/* lui */
+      break;
+      case 0x09:  reg[rt] = reg[rs] + simm;/* addiu */
+      break;
+      case 0x0c:  reg[rt] = reg[rs] &  uimm;/* andi */
+      break;
+      case 0x0f:  reg[rt] = simm << 16;/* lui */
+      break;
       case 0x1a: /* trap */
         switch (addr & 0xf) {
           case 0x00: printf("\n");
@@ -236,11 +243,10 @@ static void Interpret(int start)
           default: fprintf(stderr, "unimplemented trap: pc = 0x%x\n", pc-4); cont = 0;
         }
         break;
-      case 0x23:  reg[rt] = LoadWord(reg[rs] + simm);
-      break;  /* lw */ // call LoadWord function
-      // instruction counter
-      case 0x2b:  StoreWord(reg[rt], reg[rs] + simm);
-      break;  /* sw */ // call StoreWord function
+      case 0x23:  reg[rt] = LoadWord(reg[rs] + simm);/* lw */
+      break;   // call LoadWord function
+      case 0x2b:  StoreWord(reg[rt], reg[rs] + simm);/* sw */
+      break;   // call StoreWord function
       default: fprintf(stderr, "unimplemented instruction: pc = 0x%x\n", pc-4); cont = 0;
     }
 
