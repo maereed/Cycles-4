@@ -115,7 +115,7 @@ static void Dependencies(int currentData, int stage){
 
      ///determine the number of stalls needed to grab the data
     /// so future - current = TimeToWait
-      int stalls = (resultsAvailable[i] - 1) - stage;
+      int stalls = resultsAvailable[i] - stage;
       bubbleCount += stalls;
 
       //While stalls are needed subtract 1 from each pipeline stage and move
@@ -220,19 +220,20 @@ static void Interpret(int start)
       case 0x03: reg[31] = pc; pc = (pc & 0xf0000000) + addr * 4;/* jal */                    Pipeline(31, 2);
                                                           flushCount +=2; Pipeline(NOP, NOP); Pipeline(NOP, NOP);
       break;
-      case 0x04:  if(reg[rs] == reg[rt]){/* beq */
+      case 0x04:  Dependencies(rs, 3);
+                  Dependencies(rt, 3);
+                  if(reg[rs] == reg[rt]){/* beq */
                     pc = pc + simm * 4;                                                       Pipeline(NOP, NOP);
                                                           flushCount +=2; Pipeline(NOP, NOP); Pipeline(NOP, NOP);
                   }
-                                                                          Dependencies(rs, 3);
-                                                                          Dependencies(rt, 3);
+
       break;
-      case 0x05:  if(reg[rs] != reg[rt]){/* bne */
+      case 0x05:  Dependencies(rs, 3);
+                  Dependencies(rt, 3);
+                  if(reg[rs] != reg[rt]){/* bne */
                     pc = pc + simm * 4;                                                       Pipeline(NOP, NOP);
                                                           flushCount +=2; Pipeline(NOP, NOP); Pipeline(NOP, NOP);
                   }
-                                                                          Dependencies(rs, 3);
-                                                                          Dependencies(rt, 3);
       break;
       case 0x09:  reg[rt] = reg[rs] + simm;/* addiu */
                                                                           Dependencies(rs, 3); Pipeline(rt, 4);
@@ -246,26 +247,26 @@ static void Interpret(int start)
       case 0x1a: /* trap */
         switch (addr & 0xf) {
           case 0x00: printf("\n");
-                                                                                               Pipeline(NOP, NOP);
+          Pipeline(NOP, NOP);
           break;
           case 0x01: printf(" %d ", reg[rs]);
                                                                           Dependencies(rs, 3); Pipeline(NOP, NOP);
           break;
           case 0x05: printf("\n? "); fflush(stdout); scanf("%d", &reg[rt]);
-                                                                          Dependencies(rt, 3); Pipeline(NOP, NOP);
+                                                                                               Pipeline(rt, 4);
           break;
           case 0x0a: cont = 0;
-                                                                                               Pipeline(NOP, NOP);
+          Pipeline(NOP, NOP);
           break;
-          default: fprintf(stderr, "unimplemented trap: pc = 0x%x\n", pc-4); cont = 0;         Pipeline(NOP, NOP);
+          default: fprintf(stderr, "unimplemented trap: pc = 0x%x\n", pc-4); cont = 0;
         }
         break;
       case 0x23:  reg[rt] = LoadWord(reg[rs] + simm);/* lw */
-                                                                          Dependencies(rs, 3); Pipeline(rt, 7);
+                                                                          Dependencies(rs, 3); Pipeline(rt, 6);
       break;   // call LoadWord function
       case 0x2b:  StoreWord(reg[rt], reg[rs] + simm);/* sw */
                                                                           Dependencies(rs, 3);
-                                                                          Dependencies(rt, 6); Pipeline(NOP, NOP);
+                                                                          Dependencies(rt, 5); Pipeline(NOP, NOP);
       break;   // call StoreWord function
       default: fprintf(stderr, "unimplemented instruction: pc = 0x%x\n", pc-4); cont = 0;
     }
